@@ -39,6 +39,96 @@ function metric(label, value, small) {
   return el('div', { class: 'metric' }, el('label', {}, label), el('strong', {}, value), el('small', {}, small || ''));
 }
 
+// --------------------------------------------------------------------------- helix, ticker, composition
+
+const COMP = { A: 'T', C: 'G', G: 'C', T: 'A' };
+const COLORS = { A: '#2f8a5f', C: '#c98a1b', G: '#4a63b5', T: '#c0504d' };
+const SVG = 'http://www.w3.org/2000/svg';
+const helix = { seq: '', phase: 0, nodes: null, frame: 0 };
+
+function randomBases(n) {
+  return Array.from({ length: n }, () => 'ACGT'[Math.floor(Math.random() * 4)]).join('');
+}
+
+function buildHelix(seq) {
+  const svg = $('helix');
+  const rungs = 18;
+  helix.seq = seq.slice(0, rungs).padEnd(rungs, 'A');
+  const s1 = document.createElementNS(SVG, 'path'), s2 = document.createElementNS(SVG, 'path');
+  s1.setAttribute('class', 'strand'); s2.setAttribute('class', 'strand');
+  s1.setAttribute('stroke', '#1d3b33'); s2.setAttribute('stroke', '#24654f');
+  const rows = Array.from(helix.seq, (b) => {
+    const g = document.createElementNS(SVG, 'g');
+    const l1 = document.createElementNS(SVG, 'line'), l2 = document.createElementNS(SVG, 'line');
+    l1.setAttribute('class', 'rung'); l2.setAttribute('class', 'rung');
+    l1.setAttribute('stroke', COLORS[b]); l2.setAttribute('stroke', COLORS[COMP[b]]);
+    const t1 = document.createElementNS(SVG, 'text'), t2 = document.createElementNS(SVG, 'text');
+    t1.textContent = b; t2.textContent = COMP[b];
+    t1.setAttribute('fill', COLORS[b]); t2.setAttribute('fill', COLORS[COMP[b]]);
+    g.append(l1, l2, t1, t2);
+    return { g, l1, l2, t1, t2 };
+  });
+  svg.replaceChildren(s1, ...rows.map((r) => r.g), s2);
+  helix.nodes = { s1, s2, rows };
+  drawHelix();
+}
+
+function drawHelix() {
+  const { s1, s2, rows } = helix.nodes;
+  const cx = 160, amp = 92, top = 24, step = 22, turn = 0.52;
+  const pts = (sign) => {
+    let d = '';
+    for (let y = 0; y <= rows.length * step; y += 4) {
+      const x = cx + sign * amp * Math.sin(helix.phase + (y / step) * turn);
+      d += `${d ? 'L' : 'M'}${x.toFixed(1)},${(top + y - step / 2).toFixed(1)}`;
+    }
+    return d;
+  };
+  s1.setAttribute('d', pts(1));
+  s2.setAttribute('d', pts(-1));
+  rows.forEach((r, i) => {
+    const a = helix.phase + (i + 0.5) * turn;
+    const x1 = cx + amp * Math.sin(a), x2 = cx - amp * Math.sin(a), y = top + i * step;
+    const depth = 0.35 + 0.65 * (Math.cos(a) * 0.5 + 0.5);
+    r.l1.setAttribute('x1', x1); r.l1.setAttribute('x2', cx); r.l2.setAttribute('x1', cx); r.l2.setAttribute('x2', x2);
+    for (const l of [r.l1, r.l2]) { l.setAttribute('y1', y); l.setAttribute('y2', y); }
+    r.t1.setAttribute('x', x1 + Math.sign(x1 - cx || 1) * 11); r.t1.setAttribute('y', y);
+    r.t2.setAttribute('x', x2 + Math.sign(x2 - cx || -1) * 11); r.t2.setAttribute('y', y);
+    r.g.setAttribute('opacity', depth.toFixed(2));
+  });
+}
+
+function animateHelix() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let last = performance.now();
+  const tick = (now) => {
+    helix.phase += (now - last) * 0.0009;
+    last = now;
+    drawHelix();
+    helix.frame = requestAnimationFrame(tick);
+  };
+  helix.frame = requestAnimationFrame(tick);
+}
+
+function fillTicker(seq) {
+  const text = (seq + seq).slice(0, 360) || randomBases(360);
+  colorBases($('ticker'), text);
+}
+
+function composition(seq) {
+  const counts = { A: 0, C: 0, G: 0, T: 0 };
+  for (const b of seq) counts[b] += 1;
+  const n = seq.length || 1;
+  $('composition').replaceChildren(...'ACGT'.split('').map((b) => {
+    const pct = (100 * counts[b]) / n;
+    const s = el('span', { title: `${b}: ${pct.toFixed(1)}%` });
+    s.style.width = `${pct}%`;
+    s.style.background = COLORS[b];
+    return s;
+  }));
+  return counts;
+}
+
 // --------------------------------------------------------------------------- encode
 
 function chooseFile(file) {
@@ -106,6 +196,14 @@ function renderEncoded() {
   );
   colorBases($('sequence'), state.record.slice(0, 480));
   $('sequence').hidden = !state.record;
+  $('composition').hidden = !state.record;
+  if (state.record) {
+    const counts = composition(state.record);
+    const gc = (100 * (counts.G + counts.C)) / state.record.length;
+    buildHelix(state.record);
+    fillTicker(state.record);
+    $('helix-caption').textContent = `fig. 1: the first ${helix.seq.length} bases of ${result.name} · GC ${gc.toFixed(0)}%`;
+  }
   $('encode-sha').textContent = result.sha256;
   const a = $('download-archive');
   a.href = url(archive);
@@ -194,6 +292,10 @@ function dropzone(zone, input, onFile) {
   for (const ev of ['dragleave', 'drop']) zone.addEventListener(ev, () => zone.classList.remove('drag'));
   zone.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
 }
+
+buildHelix(randomBases(18));
+fillTicker('');
+animateHelix();
 
 dropzone($('dropzone'), $('file'), chooseFile);
 dropzone($('decode-drop'), $('decode-file'), decodeUpload);
