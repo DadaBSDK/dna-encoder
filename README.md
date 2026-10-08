@@ -95,6 +95,10 @@ recovered output only after validating the archive length and SHA-256. Failed op
 remove temporary files. SHA-256 detects accidental corruption; this format is not an
 authenticated or encrypted archive.
 
+Try streaming mode without installing anything at <https://devashishwakde.github.io/dna-encoder/>. The page (`site/`) is a browser port of the same
+format: archives are byte-identical to `stream-encode`, decoding performs the same checks, and files
+never leave the browser. `tests/test_site_stream.py` checks interoperability with Node.js.
+
 Reproduce valid PNG, animated GIF and MP4 demonstrations (FFmpeg needed only to create
 and validate the fixtures; the output directory must not already exist):
 

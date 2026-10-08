@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helix DNA Encoder</title>
+<meta name="description" content="Encode any file into DNA bases in your browser, edit the bases, and see integrity checking in action.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2324654f'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='monospace'%3EAT%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./"><span class="logo">⌘</span> helix<span class="brand-dot">.</span></a>
+  <nav><a href="#encode">Encode</a><a href="#lab">Mutation lab</a><a href="#decode">Decode</a><a href="#how">How it works</a>
+    <a class="repo" href="https://github.com/DevashishWakde/dna-encoder">GitHub ↗</a></nav>
+</header>
+<main>
+<section class="intro">
+  <div>
+    <div class="eyebrow">FROM BYTES TO BASES · RUNS IN YOUR BROWSER</div>
+    <h1>Your files. Written in DNA.</h1>
+    <p>Turn any file into A, C, G and T, change a base, and watch the integrity check catch it. Nothing is uploaded: files never leave this page.</p>
+  </div>
+  <span class="intro-mark" aria-hidden="true">A <i>·</i> C<br>G <i>·</i> T</span>
+</section>
+
+<div class="layout" id="encode">
+  <section class="panel">
+    <div class="panel-title"><span class="step">01</span><h2>Encode a file</h2></div>
+    <div class="pad">
+      <div class="upload" id="dropzone">
+        <input id="file" type="file" aria-label="Choose a file to encode">
+        <div class="upload-icon">↥</div>
+        <strong id="file-title">Drop a file to begin</strong>
+        <span id="file-subtitle">Images, videos, GIFs, documents: any file</span>
+        <span class="browse">or browse files</span>
+      </div>
+      <div id="media-preview" class="media-preview" hidden></div>
+      <button type="button" class="text-button" id="sample">↗ Try a sample text file</button>
+      <div id="encode-error" class="error" role="alert" hidden></div>
+      <button type="button" id="encode-btn" class="primary" disabled>Encode to DNA <span>↗</span></button>
+      <progress id="encode-progress" max="1" value="0" hidden></progress>
+      <p class="footnote">Each byte becomes four bases (00=A, 01=C, 10=G, 11=T), so the archive is about 4× the file size.</p>
+    </div>
+  </section>
+
+  <section class="panel result-panel">
+    <div class="panel-title"><span class="step">02</span><h2>Your DNA</h2><span class="badge" id="encode-badge">READY</span></div>
+    <div class="pad">
+      <div id="encode-empty" class="empty">
+        <div class="dna-art" aria-hidden="true"><span>A ───── T</span><span> C ── G </span><span>  G · C  </span><span> T ── A </span><span>A ───── T</span></div>
+        <h3>A little data. A new language.</h3>
+        <p>Your sequence, its fingerprint and a downloadable<br>archive appear here after encoding.</p>
+      </div>
+      <div id="encode-result" hidden>
+        <div class="metrics" id="encode-metrics"></div>
+        <div class="sequence-heading"><h3>DNA sequence</h3><span>FIRST ≤480 NT · PREVIEW</span></div>
+        <div class="base-legend"><span class="a">● A</span><span class="c">● C</span><span class="g">● G</span><span class="t">● T</span></div>
+        <div id="sequence" class="sequence"></div>
+        <div class="checks"><p>SHA-256 fingerprint stored in the archive<code id="encode-sha"></code></p></div>
+        <div class="downloads"><a id="download-archive" href="#">↓ Download .dna archive</a></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel lab" id="lab">
+  <div class="panel-title"><span class="step">03</span><h2>Mutation lab</h2><span class="muted">EDIT THE FIRST DNA RECORD, THEN DECODE</span></div>
+  <div class="pad">
+    <p class="lead" id="lab-empty">Encode a file first. Its first DNA record (up to 1,024 bases) appears here for editing.</p>
+    <div id="lab-body" hidden>
+      <label class="field-label" for="record">FIRST DNA RECORD · <span id="record-diff">unchanged</span></label>
+      <textarea id="record" spellcheck="false" autocomplete="off" aria-describedby="record-help"></textarea>
+      <p class="hint" id="record-help">Lowercase letters are converted to uppercase. Changing the length or typing anything other than A, C, G, T also fails, with its own error.</p>
+      <div class="row">
+        <button type="button" class="ghost" id="mutate">Mutate 1 random base</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <button type="button" class="primary inline" id="lab-decode">Decode edited archive <span>↗</span></button>
+      </div>
+      <div id="lab-result" hidden></div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="decode">
+  <div class="panel-title"><span class="step">04</span><h2>Decode an archive</h2><span class="muted">FROM THIS PAGE OR THE dnastore CLI</span></div>
+  <div class="pad">
+    <div class="upload small" id="decode-drop">
+      <input id="decode-file" type="file" accept=".dna,text/plain" aria-label="Choose a .dna archive to decode">
+      <strong id="decode-title">Drop a .dna archive</strong>
+      <span>Verified against its SHA-256 before you can download anything</span>
+    </div>
+    <div id="decode-result" hidden></div>
+  </div>
+</section>
+
+<section id="how" class="guide">
+  <div><div class="eyebrow">UNDER THE HOOD</div><h2>Why one changed base breaks the file.</h2></div>
+  <article><b>01 / Encode</b><p>A direct mapping: every byte becomes four bases. The archive also stores the file's length and its SHA-256 fingerprint.</p></article>
+  <article><b>02 / Verify</b><p>Decoding recomputes the fingerprint. Any changed base changes it completely, so the file is refused rather than returned silently damaged.</p></article>
+  <article><b>03 / Correct</b><p>This mode detects errors but cannot fix them: there is no redundancy. The full <a href="https://github.com/DevashishWakde/dna-encoder">dnastore</a> project adds oligo mode, with per-strand CRC-32 and Reed–Solomon parity that rebuild damaged strands. It runs locally in Python.</p></article>
+</section>
+<footer>HELIX / DNA ENCODER <span>Archives are interchangeable with <code>dnastore stream-encode</code> / <code>stream-decode</code>. Research software.</span></footer>
+</main>
+</body>
+</html>
