@@ -1,0 +1,22 @@
+# Primary instrument: steering-B (rotating ternary + steering), P = 8.
+# Inherits everything else from defaults (dnastore/config.py); screening limits are shared.
+primers: primers.yaml
+codec:
+  name: steering
+  params:
+    P: 8
+    alphabet: B
+    beam_width: 16
+    w_gc: 1.0
+    w_conf: 1.0            # upper-tail R10.4.1 9-mer confusability (both strands)
+    conf_model: r10.4.1_9mer
+    conf_delta: 0.05
+    conf_quantile: 0.75
+    w_stem: 1.0            # tier-1 structure proxy (docs/notes/structure.md)
+    stem_ks: [4, 5, 6]
+    stem_w_site: 8.0
+    rescore: local_access  # tier-2: windowed partition function, W=80, 60 C
+    rescore_top: 4
+screening:
+  hard: [homopolymer, gc_global, gc_window, primer, primer_anchor]
+workers: 8

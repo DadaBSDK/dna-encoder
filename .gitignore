@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+results/*/
+data/kmer_models/*
+
+!data/kmer_models/PROVENANCE.json
+build/
+dist/
+tools/*
+!tools/VERSIONS.json
+data/real_r10/
+.coverage
+tmp/
+output/

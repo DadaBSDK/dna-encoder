@@ -1,0 +1,69 @@
+forward: GCTGATTTATGTGGCTTGCG
+reverse: ATGGCCTTCAACCCTCTACA
+design_seed: 1
+validation:
+  ok: true
+  failures: []
+  forward:
+    seq: GCTGATTTATGTGGCTTGCG
+    gc: 0.5
+    tm: 58.16865739169282
+    max_homopolymer: 3
+    clamp_gc: 3
+    hairpin_dg: 0.0
+    homodimer_dg: -2360.3112289277815
+  reverse:
+    seq: ATGGCCTTCAACCCTCTACA
+    gc: 0.5
+    tm: 58.33117405329085
+    max_homopolymer: 3
+    clamp_gc: 2
+    hairpin_dg: 0.0
+    homodimer_dg: -5636.513686770944
+  tm_diff: 0.16251666159803335
+  heterodimer_dg: -3914.3874578493705
+  cross:
+    F~R:
+      min_mismatch_frac: 0.667
+      hamming_shift0: 15
+    F~rcF:
+      min_mismatch_frac: 0.571
+      hamming_shift0: null
+    F~rcR:
+      min_mismatch_frac: 0.5
+      hamming_shift0: 18
+    R~rcF:
+      min_mismatch_frac: 0.5
+      hamming_shift0: 18
+    R~rcR:
+      min_mismatch_frac: 0.529
+      hamming_shift0: null
+    rcF~rcR:
+      min_mismatch_frac: 0.667
+      hamming_shift0: 15
+  constraints:
+    length: 20
+    gc_min: 0.45
+    gc_max: 0.55
+    tm_min: 58.0
+    tm_max: 62.0
+    max_tm_diff: 2.0
+    max_homopolymer: 3
+    clamp_window: 5
+    clamp_gc_min: 1
+    clamp_gc_max: 3
+    min_hairpin_dg: -2000.0
+    min_dimer_dg: -6000.0
+    min_overlap: 12
+    min_mismatch_frac: 0.4
+    min_hamming_full: 10
+  primer3_conditions:
+    mv_conc_mM: 50.0
+    dv_conc_mM: 1.5
+    dntp_conc_mM: 0.6
+    dna_conc_nM: 50.0
+    tm_method: santalucia
+    salt_corrections_method: santalucia
+    dG_temperature_C: 37.0
+  design_seed: 1
+  candidates_sampled: 20

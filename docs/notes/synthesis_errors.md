@@ -1,0 +1,37 @@
+# Synthesis errors vs sequence context (addendum item d)
+
+Question: is there published, quantitative evidence that **synthesis** errors (substitutions, insertions, deletions, truncation) depend on homopolymer runs or GC content? If so, we could model the synthesis-side cost of *unconstrained* oligos (the whiten+RS arm).
+
+**Answer: no usable parameters.** Published synthesis-error data are aggregate per-nucleotide rates, sometimes with position or base-identity effects. Homopolymer and GC effects reported in the DNA-storage literature are either (i) about sequencing or PCR, (ii) qualitative or combined synthesis+sequencing, or (iii) for runs longer than six, outside our regime (max run ≤ 3; whitened data rarely exceed 6). `dnastore/synthesis.py` therefore implements **context-free presets only**.
+
+## Sources checked (numbers quoted only where seen in the source)
+
+| Source | What it reports | Homopolymer / GC dependence of *synthesis* errors? |
+|---|---|---|
+| Heckel, Mikutis & Grass 2019, *Sci. Rep.* 9:9663, [doi:10.1038/s41598-019-45832-6](https://doi.org/10.1038/s41598-019-45832-6) (read via arXiv:1803.03322 full text) | §2.1: synthesis causes deletions, insertions, substitutions and termination ("around 0.05%", citing [LeP+10]). §3.2.3 and Fig. 3: "likely most of the deletions (and insertions) … are due to synthesis". Conclusion: "Synthesis introduces mainly deletion errors, and potentially a few insertions." Fig. 3 gives rates as bar charts (≈ 0–3% scale); no table values. | **No.** §2.3 says high GC and long homopolymers raise errors "for most sequencing (and synthesis) technologies" but cites Ross et al. 2013 Fig. 5 (**sequencing**): substitution and deletion rates "increase significantly for homopolymer stretches longer than six". GC effects cited there are dropout/PCR/coverage (Schwartz 2012; Ross 2013 Fig. 3), not synthesis error rates. The datasets analysed were constrained (no homopolymers > 2 or 3). |
+| Gimpel, Stark, Heckel & Grass 2023, *Nat. Commun.* 14:6026, [doi:10.1038/s41467-023-41729-1](https://doi.org/10.1038/s41467-023-41729-1) (PMC10533828) | Fig. 2a ("Not all DNA is created equal…"): deletions **13.5 ± 2.0 × 10⁻³ nt⁻¹** (electrochemical) vs **0.58 ± 0.15 × 10⁻³ nt⁻¹** (material deposition / Twist). Substitutions "negligible". Electrochemical deletions rise towards the 5′ end (">5% per nucleotide"); material deposition shows no considerable positional dependence. "Deletions also did not show any relevant bias towards any nucleotide." Runs of consecutive deletions account for 10–14% of deletions (electrochemical). Over all 40 datasets: 6.7 ± 6.9 deletions, 7.9 ± 2.0 substitutions, < 0.3 ± 0.2 insertions per 1000 nt (all processes). | **No.** Homopolymers are not mentioned. GC constraint affects **coverage** (σ 1.30 → 0.58, electrochemical), not error rates. Synthesis insertions are not reported separately. |
+| Gimpel, Stark, Heckel & Grass 2024, bioRxiv [doi:10.1101/2024.07.04.602085](https://doi.org/10.1101/2024.07.04.602085) (photolithographic synthesis + decay) | "0.082 deletions, 0.016 insertions, and 0.025 substitutions per nucleotide on average"; 16% of substitutions and 14% of deletions occur in groups. | **No** quantitative homopolymer or GC dependence. |
+| Lietard et al. 2021, *Nucleic Acids Res.* 49:6687–6701, [doi:10.1093/nar/gkab505](https://doi.org/10.1093/nar/gkab505) (light-directed synthesis) | Table 1 (2SZ library): total 6.3% per bp; deletions 4.65%, insertions 0.58%, substitutions 0.98% per bp. G→T substitution 0.32% per bp vs 0.04–0.07% for others. Fig. 6: "each fifth nucleotide displays unusually high deletion/low insertion rate". | **No.** Base identity (G) and position effects only. Homopolymers appear only as fixed terminal design elements. |
+| Yeom et al. 2023, *ACS Synth. Biol.* 12:3567, [doi:10.1021/acssynbio.3c00308](https://doi.org/10.1021/acssynbio.3c00308) (PMC10729760) | Fig. 4A: synthesis indel rate 0.73% per base, "6.1 times higher than the substitution error rate"; G→A 0.28% per base; positions P1–P4 at 1.41, 1.61, 1.45, 0.94%. | **No.** "SeqError and SynError depended on the position more than the sequences of each oligo"; GC fixed at 50%. Insertion/deletion split not given, so not used as a preset. |
+| Sabary et al., SOLQC, bioRxiv [10.1101/840231](https://doi.org/10.1101/840231) (published in *Bioinformatics* 37(5):720) | Fig. 20 / §3.2: read error rate increases with designed GC content **in G-15 only**. Fig. 21: 3′ error rates exceed 5′ in all four datasets. Fig. 15 caption: substitutions and insertions "primarily due to sequencing", long deletions "primarily due to synthesis". | **Qualitative and combined** synthesis+sequencing, one dataset only; no homopolymer analysis. Not parameterisable. |
+| Wang et al. 2023, *IEEE/ACM TCBB* 20(3), [doi:10.1109/TCBB.2022.3233914](https://doi.org/10.1109/TCBB.2022.3233914) (bioRxiv 10.1101/2021.07.17.452779) | Fig. 3B/C: 3-mer and 4-mer repeats show higher deletion tendency than 2-mer. "Around 44% of reads of homopolymer runs no less than 5 … contain a deletion error" (Nanopore). | Homopolymer effect is attributed to **sequencing (Nanopore)** or combined channels, not synthesis. |
+| Goyal et al. 2026, arXiv:2606.07216 | Synthesis and sequencing modelled as binary symmetric channels. | No context-dependent parameters. |
+
+Not separately checked: Organick et al. 2018 (no synthesis-context analysis known to me; not verified) and Antkowiak et al. 2020 (paywall redirect; its successor data are covered by Lietard 2021 and Gimpel 2024).
+
+## What is implemented (`dnastore/synthesis.py`)
+- `SynthesisModel(name, p_del, p_ins, p_sub, source, notes)`: i.i.d. per-nucleotide errors, independent of position and context.
+- Presets with source tags:
+  - `zero`
+  - `twist_gimpel2023` (del 5.8e-4)
+  - `electrochemical_gimpel2023` (del 1.35e-2)
+  - `photolitho_gimpel2024` (0.082 / 0.016 / 0.025)
+  - `photolitho_lietard2021` (0.0465 / 0.0058 / 0.0098)
+- Rates the sources did not report are set to 0 and say so.
+- **Not modelled** (published but not parameterisable as context effects, or out of scope): 5′ positional ramps, deletion clustering, base-specific substitution spectra, termination/truncation.
+- `mutate(seq, model, rng)` and `apply_synthesis_errors(oligos, model, rng, copies)`. Tests: `tests/test_synthesis.py` (8 tests: identity, reproducibility, empirical rates, explicit context-independence).
+
+Because the model is context-free, it adds the same expected error load to constrained and unconstrained arms. It **cannot** create a synthesis-side penalty for unconstrained sequences, so it is not evidence for or against constraints.
+
+## Recommended statement for the paper
+> We found no published, quantitative, synthesis-specific dependence of error rates on homopolymer length or GC content within the regime studied here (max run ≤ 3; GC 40–60%). Reported context effects concern sequencing (homopolymers > 6; Ross et al. 2013, via Heckel et al. 2019), coverage and PCR bias (Gimpel et al. 2023), or are qualitative and confound synthesis with sequencing (SOLQC). Synthesis errors were therefore modelled, where used, as context-independent per-nucleotide rates (Gimpel et al. 2023 Fig. 2a; Lietard et al. 2021 Table 1). Our conclusions about whether sequence constraints pay for their nucleotides are accordingly scoped to sequencing (squigulator + Dorado) and amplification yield; any synthesis-side benefit of constraints is not captured.

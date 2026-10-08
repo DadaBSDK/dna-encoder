@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/nanoporetech/kmer_models",
+  "commit": "4e56daed7fbb79b538f58e41262d5c54b07356ea",
+  "files": {
+    "r10.4.1_9mer": {
+      "path_in_repo": "dna_r10.4.1_e8.2_400bps/9mer_levels_v1.txt",
+      "url": "https://raw.githubusercontent.com/nanoporetech/kmer_models/4e56daed7fbb79b538f58e41262d5c54b07356ea/dna_r10.4.1_e8.2_400bps/9mer_levels_v1.txt",
+      "local_file": "9mer_levels_v1.txt",
+      "sha256": "e5e154511d50c7e288c020a933fa66cc15d87ec06f903baa739e0a5c390cf23c",
+      "size_bytes": 7731365,
+      "downloaded_utc": "2026-10-01T17:24:32+00:00"
+    },
+    "r9.4.1_6mer": {
+      "path_in_repo": "legacy/legacy_r9.4_180mv_450bps_6mer/template_median68pA.model",
+      "url": "https://raw.githubusercontent.com/nanoporetech/kmer_models/4e56daed7fbb79b538f58e41262d5c54b07356ea/legacy/legacy_r9.4_180mv_450bps_6mer/template_median68pA.model",
+      "local_file": "template_median68pA.model",
+      "sha256": "5733049bc90bfd5acd5dfd2c258b07df7870ed5c7d943c495f46fc179cc4c16e",
+      "size_bytes": 229164,
+      "downloaded_utc": "2026-10-01T17:26:33+00:00"
+    }
+  }
+}

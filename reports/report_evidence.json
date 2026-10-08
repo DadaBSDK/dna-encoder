@@ -1,0 +1,10 @@
+{
+  "results/report_examples_20261008/examples.json": "f986277b73031c9f048de494eb8ba4eea582369c730a741871bbbace1f0e92f5",
+  "results/report_examples_20261008/results.csv": "f378b9fc6b44b45eea47d7a1732d69889952ca93b63c285f2f70119be66d1e00",
+  "results/phase4/validation_optimized_20261008/summary.csv": "a6042d16cb730e3a70ffd43c12d2d5abd967e4ecb96ecf3b45c27fb45bb0f0d0",
+  "results/phase4/validation_optimized_20261008/provenance.json": "936cd92f26579284625cd70b9f0441e34372062b14f41d2129eb4267b7b0f512",
+  "results/phase3/cluster_scale_100KB/cluster_scale.csv": "fed0284a08e82c6a1880813069c57c5175a64c2e9b866891f39e1dee7442cce3",
+  "docs/PROJECT_STATUS.md": "6a30df44f0bc1fbdaf0e2d4fc5a7d59a82ecca7e9bc65096d5cd47ab84b626c2",
+  "docs/DESIGN.md": "02fef784cebf44bfad9311b60c8f655f93751e5a2bc9db04cc07307d41591a0b",
+  "reports/dna_storage_project_report.tex": "c49d9d0917ab1d374f1236b3e69a1c7deb7a9917bd4a45434dc1fb1ccd93b3e8"
+}

@@ -1,0 +1,32 @@
+# Default encode configuration (see dnastore/config.py for every key).
+oligo_len: 200
+header_copies: 5
+global_seed: 0
+primers: primers.yaml
+
+container:
+  zstd_level: 19
+  max_ratio: 0.98
+
+ecc:
+  parity_permille: 150   # parity oligos = ceil(k * 0.150) per RS block
+  k_max: null            # largest k with k + parity <= 255
+
+codec:
+  name: goldman
+  params: {}
+
+screening:
+  gc_global: [0.40, 0.60]
+  gc_window_size: 20
+  gc_window: [0.25, 0.75]
+  max_homopolymer: 3
+  mfe_temperature: 37.0
+  mfe_threshold: null    # calibrated in Phase 2 from whitened random oligos (DESIGN.md F9)
+  primer_max_mismatch: 3
+  primer_anchor_len: 8
+  primer_anchor_mismatch: 0
+  hard: [homopolymer, gc_global, gc_window, primer, primer_anchor]
+
+compute_mfe: false
+workers: null

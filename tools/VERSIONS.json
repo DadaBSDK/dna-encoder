@@ -1,0 +1,15 @@
+{
+  "archives": {
+    "squigulator-v0.5.0-x86_64-linux-binaries.tar.gz": "7197920bc50b2c10638e61d47f85c9a1c90dc62d16125a096d51e995db803a7d",
+    "dorado-2.1.2-linux-x64.tar.gz": "f4ed83acfb75cf07ffe8a0fc78e26828fc911fcfc8177920be6104e1d0e02485"
+  },
+  "squigulator": "squigulator 0.5.0",
+  "dorado": "2.1.2+8b8fc5d",
+  "models": [
+    "dna_r10.4.1_e8.2_400bps_fast@v5.2.0",
+    "dna_r10.4.1_e8.2_400bps_hac@v6.0.0",
+    "dna_r10.4.1_e8.2_400bps_sup@v5.2.0"
+  ],
+  "blue_crab": "0.6.0",
+  "nvidia_smi": "NVIDIA GeForce RTX 3050 Laptop GPU, 580.178.04, 4096 MiB"
+}

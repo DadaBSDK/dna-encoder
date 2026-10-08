@@ -1,0 +1,39 @@
+# Core study preset. Full publication also needs corpus/weight/period/sensitivity sweeps.
+mode: study
+seed: 20261008
+encode_config: default.yaml
+encode:
+  workers: 2
+payloads:
+  - {name: random4KB, bytes: 4000}
+payload_seeds: [0, 1, 2]
+channel_seeds: 20
+arms:
+  - name: whiten-RS
+    codec: {name: naive2bit, params: {whiten: true}}
+  - name: naive2bit
+    codec: {name: naive2bit}
+  - name: goldman
+    codec: {name: goldman}
+  - name: steering-A-P8
+    codec: {name: steering, params: {P: 8, alphabet: A}}
+  - name: steering-C-P8
+    codec: {name: steering, params: {P: 8, alphabet: C}}
+  - name: steering-B-P6
+    codec: {name: steering, params: {P: 6, alphabet: B}}
+  - name: fountain
+    codec: {name: fountain, params: {overhead: 0.15}}
+channels:
+  - name: badread-calibrated
+    kind: badread
+    params: {identity: '98.48,99.9,1.2', coverage: lognormal, lognormal_sigma: 0.27}
+  - name: ids3
+    kind: ids
+    params: {p_sub: 0.01, p_ins: 0.01, p_del: 0.01, coverage: lognormal, lognormal_sigma: 0.27}
+  - name: ids9
+    kind: ids
+    params: {p_sub: 0.03, p_ins: 0.03, p_del: 0.03, coverage: lognormal, lognormal_sigma: 0.27}
+depths: [3, 5, 8, 12, 20]
+max_depth: 30
+minimum_depth: true
+plots: true

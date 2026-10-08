@@ -1,0 +1,59 @@
+# Multi-seed regression experiment, not the full publication corpus.
+mode: study
+seed: 20261008
+encode_config: default.yaml
+encode:
+  workers: 2
+payloads:
+- name: random800
+  bytes: 800
+payload_seeds:
+- 0
+- 1
+channel_seeds: 20
+arms:
+- name: whiten-RS
+  codec:
+    name: naive2bit
+    params:
+      whiten: true
+- name: goldman
+  codec:
+    name: goldman
+- name: steering-A-P8
+  codec:
+    name: steering
+    params:
+      P: 8
+      alphabet: A
+- name: steering-C-P8
+  codec:
+    name: steering
+    params:
+      P: 8
+      alphabet: C
+- name: steering-B-P6
+  codec:
+    name: steering
+    params:
+      P: 6
+      alphabet: B
+- name: fountain
+  codec:
+    name: fountain
+    params:
+      overhead: 0.15
+channels:
+- name: ids3
+  kind: ids
+  params:
+    p_sub: 0.01
+    p_ins: 0.01
+    p_del: 0.01
+    coverage: lognormal
+    lognormal_sigma: 0.27
+depths:
+- 8
+max_depth: 8
+minimum_depth: false
+plots: true

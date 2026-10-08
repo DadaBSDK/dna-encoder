@@ -1,0 +1,33 @@
+# Optional Badread integration validation; not a scientific study.
+mode: smoke
+seed: 20261008
+encode_config: default.yaml
+encode:
+  workers: 2
+payloads:
+- name: random800
+  bytes: 800
+payload_seeds:
+- 0
+channel_seeds: 2
+arms:
+- name: whiten-RS
+  codec:
+    name: naive2bit
+    params:
+      whiten: true
+- name: goldman
+  codec:
+    name: goldman
+channels:
+- name: badread-calibrated
+  kind: badread
+  params:
+    identity: 98.48,99.9,1.2
+    coverage: lognormal
+    lognormal_sigma: 0.27
+depths:
+- 8
+max_depth: 12
+minimum_depth: false
+plots: true
