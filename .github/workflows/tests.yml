@@ -15,5 +15,7 @@ jobs:
         run: python scripts/fetch_kmer_models.py
       - run: python -m pip check
       - run: python -m pytest -q
+      - name: Browser codec tests (site/)
+        run: node --test site/tests/resilient.test.mjs
       - name: Build distributable wheel
         run: python -m pip wheel --no-deps --wheel-dir dist .

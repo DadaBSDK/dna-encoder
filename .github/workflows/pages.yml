@@ -21,15 +21,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build with versioned asset URLs
         # Pages caches files for 10 minutes. Stamping asset URLs with the commit means a
-        # fresh index.html never pairs with a stale app.js/style.css/stream.js.
+        # fresh index.html never pairs with stale scripts, styles or the decoder worker.
         run: |
           v="${GITHUB_SHA::12}"
           rm -rf _site && cp -r site _site && rm -rf _site/tests
           sed -i "s|href=\"style.css\"|href=\"style.css?v=$v\"|; s|src=\"app.js\"|src=\"app.js?v=$v\"|" _site/index.html
-          sed -i "s|from './stream.js'|from './stream.js?v=$v'|" _site/app.js
+          # every relative module reference: static imports, import(), new URL('./worker.js')
+          sed -i -E "s#'\./([a-z]+)\.js'#'./\1.js?v=$v'#g" _site/*.js
           grep -q "style.css?v=$v" _site/index.html
           grep -q "app.js?v=$v" _site/index.html
-          grep -q "stream.js?v=$v" _site/app.js
+          if grep -nE "'\./[a-z]+\.js'" _site/*.js; then echo "unversioned module URL" >&2; exit 1; fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
