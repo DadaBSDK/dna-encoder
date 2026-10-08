@@ -110,9 +110,17 @@ function animateHelix() {
   helix.frame = requestAnimationFrame(tick);
 }
 
+// Decorations must never stop encoding/decoding (e.g. if a stale cached page lacks an element).
+function decorate(fn) {
+  try { fn(); } catch (e) { console.warn('decoration skipped:', e); }
+}
+
+// Two identical halves scrolled by -50% loop seamlessly and fill the band from the first frame.
 function fillTicker(seq) {
-  const text = (seq + seq).slice(0, 360) || randomBases(360);
-  colorBases($('ticker'), text);
+  let half = seq || randomBases(240);
+  while (half.length < 240) half += seq;
+  half = half.slice(0, 240) + '   ';
+  colorBases($('ticker'), half + half);
 }
 
 function composition(seq) {
@@ -200,9 +208,11 @@ function renderEncoded() {
   if (state.record) {
     const counts = composition(state.record);
     const gc = (100 * (counts.G + counts.C)) / state.record.length;
-    buildHelix(state.record);
-    fillTicker(state.record);
-    $('helix-caption').textContent = `fig. 1: the first ${helix.seq.length} bases of ${result.name} · GC ${gc.toFixed(0)}%`;
+    decorate(() => {
+      buildHelix(state.record);
+      fillTicker(state.record);
+      $('helix-caption').textContent = `fig. 1: the first ${helix.seq.length} bases of ${result.name} · GC ${gc.toFixed(0)}%`;
+    });
   }
   $('encode-sha').textContent = result.sha256;
   const a = $('download-archive');
@@ -293,9 +303,11 @@ function dropzone(zone, input, onFile) {
   zone.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
 }
 
-buildHelix(randomBases(18));
-fillTicker('');
-animateHelix();
+decorate(() => {
+  buildHelix(randomBases(18));
+  fillTicker('');
+  animateHelix();
+});
 
 dropzone($('dropzone'), $('file'), chooseFile);
 dropzone($('decode-drop'), $('decode-file'), decodeUpload);
