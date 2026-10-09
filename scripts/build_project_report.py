@@ -677,9 +677,10 @@ configuration, SHA-256 digests and source checksums. E5 intentionally has no rec
   --out results/phase4/full_study
 .venv/bin/python scripts/build_project_report.py
 pdflatex -interaction=nonstopmode -halt-on-error \
-  -output-directory=output/pdf reports/dna_storage_project_report.tex
+  -output-directory=output/pdf output/report/dna_storage_project_report.tex
 pdflatex -interaction=nonstopmode -halt-on-error \
-  -output-directory=output/pdf reports/dna_storage_project_report.tex
+  -output-directory=output/pdf output/report/dna_storage_project_report.tex
+cp output/pdf/dna_storage_project_report.pdf reports/
 \end{lstlisting}
 This source is standalone: diagrams and chart coordinates are embedded; no external
 images or bibliography files are required. A standard LaTeX installation with TikZ,
@@ -716,7 +717,7 @@ node scripts/site_resilience.mjs results/site_resilience_rerun
   \path{summary.csv} and \path{provenance.json} (codec SHA-256 recorded).
 \end{description}}
 \note{\textbf{Traceability.} The report builder reads the saved JSON/CSV evidence rather
-than rerunning or fabricating measurements. \texttt{reports/report\_evidence.json}
+than rerunning or fabricating measurements. \texttt{output/report/report\_evidence.json}
 records SHA-256 hashes of the evidence files and generated LaTeX source. Rebuilding with
 changed evidence requires reviewing the interpretation as well as the numbers.}
 \end{document}
@@ -734,11 +735,11 @@ for key,value in {'EXAMPLE_ROWS':'\n'.join(rows),'VALIDATION_ROWS':'\n'.join(vt)
                   'REAL_EXACT':real['exact'],'REAL_TRIALS':real['trials']}.items():
     tex=tex.replace('@@'+key+'@@',value)
 assert '@@' not in tex
-out=ROOT/'reports/dna_storage_project_report.tex';out.parent.mkdir(exist_ok=True);out.write_text(tex)
+out=ROOT/'output/report/dna_storage_project_report.tex';out.parent.mkdir(parents=True,exist_ok=True);out.write_text(tex)
 files=[EX/'examples.json',EX/'results.csv',VALID/'summary.csv',VALID/'provenance.json',ROOT/'results/phase3/cluster_scale_100KB/cluster_scale.csv',
        SWEEP,MFE,STRUCT,CAL,TEST/'pytest_junit.xml',TEST/'coverage.json',TEST/'node_tests.tap',ADV,
        SITE/'results.csv',SITE/'summary.csv',SITE/'provenance.json',ROOT/'site/resilient.js',
        ROOT/'docs/PROJECT_STATUS.md',ROOT/'docs/DESIGN.md',out]
 manifest={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
-(ROOT/'reports/report_evidence.json').write_text(json.dumps(manifest,indent=2)+'\n')
+(out.parent/'report_evidence.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(out)
