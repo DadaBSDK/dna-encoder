@@ -1,0 +1,65 @@
+.........xxxxxxxxxx..................................................... [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+................................s....................................... [ 95%]
+...............                                                          [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/typer/__init__.py:24
+  /home/devashish-wakde/Desktop/DNA Encoder/.venv/lib/python3.13/site-packages/typer/__init__.py:24: DeprecationWarning: 'click.utils.get_binary_stream' is deprecated and will be removed in Click 9.0.
+    from click.utils import get_binary_stream as get_binary_stream
+
+.venv/lib/python3.13/site-packages/typer/__init__.py:25
+  /home/devashish-wakde/Desktop/DNA Encoder/.venv/lib/python3.13/site-packages/typer/__init__.py:25: DeprecationWarning: 'click.utils.get_text_stream' is deprecated and will be removed in Click 9.0.
+    from click.utils import get_text_stream as get_text_stream
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.13.11-final-0 _______________
+
+Name                           Stmts   Miss  Cover
+--------------------------------------------------
+dnastore/__init__.py               2      0   100%
+dnastore/benchmark.py            345     66    81%
+dnastore/channel.py              165      8    95%
+dnastore/cli.py                  111     26    77%
+dnastore/codecs/__init__.py       41      2    95%
+dnastore/codecs/fountain.py       48      1    98%
+dnastore/codecs/goldman.py        26      2    92%
+dnastore/codecs/naive2bit.py      24      0   100%
+dnastore/codecs/steering.py      425     14    97%
+dnastore/config.py                36      4    89%
+dnastore/consensus.py            151      3    98%
+dnastore/container.py            111      3    97%
+dnastore/coverage.py              76      2    97%
+dnastore/decoder.py              391     25    94%
+dnastore/dnautil.py              108      9    92%
+dnastore/ecc.py                  320     12    96%
+dnastore/encoder.py              161     10    94%
+dnastore/kmer.py                 140      8    94%
+dnastore/lt.py                   185      5    97%
+dnastore/metrics.py               13      0   100%
+dnastore/nanopore.py             177     49    72%
+dnastore/oligo.py                 94      5    95%
+dnastore/primers.py              143      4    97%
+dnastore/repair.py               107      2    98%
+dnastore/screening.py            122      2    98%
+dnastore/stream.py                77      1    99%
+dnastore/structure.py            142      9    94%
+dnastore/synthesis.py             41      2    95%
+dnastore/web.py                  271     24    91%
+--------------------------------------------------
+TOTAL                           4053    298    93%
+Coverage JSON written to file results/testing_20261009/coverage.json
+=========================== short test summary info ============================
+XFAIL tests/test_adversarial.py::test_partial_config_uses_bundled_primers - BUG: a config file without `primers:` resolves the default primers.yaml next to the config instead of the bundled primers
+XFAIL tests/test_adversarial.py::test_cli_reports_bad_config_types_cleanly - BUG: non-integer oligo_len escapes the CLI as a TypeError traceback
+XFAIL tests/test_adversarial.py::test_reedsolo_is_a_runtime_dependency - BUG: reedsolo is imported by the default `repair` decoder (ecc._ee_column) but is only a [test] extra
+XFAIL tests/test_adversarial.py::test_ee_decoding_survives_foreign_reedsolo_tables - BUG: _ee_column trusts reedsolo's global GF tables when gf_exp[1] == 2, so another primitive polynomial silently breaks it
+XFAIL tests/test_adversarial.py::test_fountain_pool_decodes_from_perfect_reads - BUG: fountain encoder never checks decodability; with default overhead most small pools (k~7) fail even from perfect reads
+XFAIL tests/test_adversarial.py::test_read_fasta_uppercase_gz_suffix - BUG: gzip is detected by lowercase '.gz' suffix only
+XFAIL tests/test_adversarial.py::test_read_fasta_truncated_gzip_is_a_user_error - BUG: truncated gzip raises EOFError, which the CLI does not catch
+XFAIL tests/test_adversarial.py::test_web_bounds_simulated_coverage - BUG: web accepts unbounded mean_coverage; one request can exhaust host memory in the read simulator
+XFAIL tests/test_adversarial.py::test_web_minimum_oligo_len_encodes_every_codec - BUG: web allows oligo_len 100, where the header of 5 of 6 codecs needs more than 15 fragments
+XFAIL tests/test_adversarial.py::test_cluster_grouping_prefers_majority_header - BUG: cluster grouping takes the first-seen header fragment, so a minority contaminant pool can block recovery of the majority file
+292 passed, 1 skipped, 10 xfailed, 2 warnings in 416.26s (0:06:56)
+exit=0

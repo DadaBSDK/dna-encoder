@@ -1,0 +1,31 @@
+{
+  "script": "scripts/site_resilience.mjs",
+  "codec": "site/resilient.js",
+  "codec_sha256": "88efc0041d2bf103765ad48a472ba5e9d9b5ee9d0b6e3a1ae7f57b924462f066",
+  "script_sha256": "84b8accdc03b37411aff2a96f90d64d7f9af0669f407b720f40fab7861d22e79",
+  "node": "v22.22.0",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz",
+  "started_unix_ms": 1791550233502,
+  "wall_s": 56.186,
+  "design": {
+    "PAYLOAD_BYTES": 20000,
+    "SEEDS": 10,
+    "ERROR_RATES": [
+      0.003,
+      0.01,
+      0.02
+    ],
+    "READS": [
+      1,
+      2,
+      3
+    ],
+    "PARITY": [
+      100,
+      250,
+      500
+    ],
+    "DROPOUT": 0.05,
+    "error_split": "sub 50% / ins 25% / del 25% of the per-base rate; independent per read; strand dropout before reading"
+  }
+}

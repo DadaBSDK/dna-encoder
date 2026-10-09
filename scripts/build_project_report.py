@@ -37,6 +37,91 @@ for k in ('substitutions','insertions','deletions'):
 dna=x['pools']['text']['first_data_oligo']
 hashes='\n'.join(name+':\n'+x['inputs'][name]['sha256'][:32]+'\n'+x['inputs'][name]['sha256'][32:] for name in ('text','binary'))
 
+# ---- Phase 2 (historical, format v2 before the inner CRC-32 change)
+import ast,re
+import xml.etree.ElementTree as ET
+SWEEP=ROOT/'results/phase2/sweep_v2/summary.csv'
+MFE=ROOT/'results/phase2/composition/mfe_summary.csv'
+sweep={r['arm']:r for r in csv.DictReader(SWEEP.open())}
+p2=[]
+for a,n in [('naive2bit','Quaternary, raw'),('naive2bit-whiten','Quaternary, whitened'),('goldman','Goldman rotating ternary'),
+            ('steering-A-P8','Steering A, P=8'),('steering-C-P8','Steering C, P=8'),('steering-B-P6','Steering B, P=6')]:
+    r=sweep[a]
+    p2.append(f"{n} & {float(r['code_density']):.3f} & {float(r['effective_density']):.3f} & {r['max_hp']} & {100*float(r['frac_violating']):.1f}\\%"+r' \\')
+mfe={(r['source'],float(r['temp'])):r for r in csv.DictReader(MFE.open())}
+def mfe_cell(src,t):
+    r=mfe[src,t]
+    return f"{float(r['mfe_median']):.1f} [{float(r['mfe_median_ci_lo']):.1f}, {float(r['mfe_median_ci_hi']):.1f}]"
+mfe_rows=[f"{label} & {mfe_cell(src,37.0)} & {mfe_cell(src,60.0)} & {float(mfe[src,37.0]['paired_frac_mean']):.2f}"+r' \\'
+          for src,label in [('iid','Whitened quaternary (i.i.d.)'),('rot','Rotating ternary (run length 1)'),('shiftban','Control: different banned successor')]]
+
+def md_row(path,label):
+    for line in path.read_text().splitlines():
+        if line.startswith('|') and label in line:
+            return [c.strip().replace('**','') for c in line.strip().strip('|').split('|')]
+    raise KeyError(label)
+STRUCT=ROOT/'docs/notes/structure.md'
+def rho(label):
+    cell=md_row(STRUCT,label)[2]
+    return re.search(r'[+\u2212-]\d\.\d+',cell).group().replace('\u2212','-')
+proxy=[('Incremental k-mer proxy (tier 1)',*rho('Tier 1, incremental k-mer').split()),
+       ('Local partition function, window 80 nt (tier 2)',rho('Tier 2, local pf, W = 80')),
+       ('Global MFE at 60 \\textdegree C',rho('Global MFE min(fwd, rc) at 60'))]
+proxy_rows=[f"{n} & ${v.replace('-','-').replace('+','+')}$"+r' \\' for n,v in proxy]
+CAL=ROOT/'docs/notes/channel_calibration.md'
+def cal(label):
+    cells=md_row(CAL,label)
+    return ' & '.join(esc(c).replace('—','--') for c in cells[1:])
+cal_rows=[f"Per-base error & {cal('Per-base error')}"+r' \\',
+          f"Sub.\\,/\\,del.\\,/\\,ins. & {cal('Substitution / deletion / insertion')}"+r' \\']
+
+# ---- Testing campaign (rerun for this report)
+TEST=ROOT/'results/testing_20261009'
+cases=list(ET.parse(TEST/'pytest_junit.xml').getroot().iter('testcase'))
+n_xfail=sum(1 for c in cases for k in c.findall('skipped') if 'xfail' in (k.get('type','')+k.get('message','')))
+n_skip=sum(1 for c in cases if c.find('skipped') is not None)-n_xfail
+n_fail=sum(1 for c in cases if c.find('failure') is not None or c.find('error') is not None)
+n_pass=len(cases)-n_xfail-n_skip-n_fail
+coverage=json.loads((TEST/'coverage.json').read_text())['totals']['percent_covered']
+tap=(TEST/'node_tests.tap').read_text()
+node_pass=int(re.search(r'^# pass (\d+)',tap,re.M).group(1)); node_fail=int(re.search(r'^# fail (\d+)',tap,re.M).group(1))
+ADV=ROOT/'tests/test_adversarial.py'
+bugs=[]
+for node in ast.walk(ast.parse(ADV.read_text())):
+    if isinstance(node,ast.FunctionDef):
+        for d in node.decorator_list:
+            if isinstance(d,ast.Call) and getattr(d.func,'attr','')=='xfail':
+                reason=next(k.value.value for k in d.keywords if k.arg=='reason')
+                bugs.append((node.name,reason.removeprefix('BUG: ')))
+guards=sum(1 for node in ast.walk(ast.parse(ADV.read_text())) if isinstance(node,ast.FunctionDef) and node.name.startswith('test_')
+           and not any(isinstance(d,ast.Call) and getattr(d.func,'attr','')=='xfail' for d in node.decorator_list))
+def tex_text(t):
+    return re.sub(r'`([^`]*)`',lambda m:r'\texttt{'+m.group(1)+'}',esc(t).replace('~',r'\textasciitilde{}'))
+bug_rows=[f"B{i} & {tex_text(r)}"+r' \\' for i,(_,r) in enumerate(bugs,1)]
+
+# ---- Web demo: error-tolerant browser codec benchmark
+SITE=ROOT/'results/site_resilience_20261009'
+site=list(csv.DictReader((SITE/'summary.csv').open()))
+site_prov=json.loads((SITE/'provenance.json').read_text())
+site_trials=sum(int(r['trials']) for r in site)
+S={(int(r['parity_permille']),float(r['error_per_base']),int(r['reads_per_strand'])):r for r in site}
+errs=sorted({float(r['error_per_base']) for r in site}); readsv=sorted({int(r['reads_per_strand']) for r in site})
+parities=sorted({int(r['parity_permille']) for r in site})
+site_grid=[]
+for e in errs:
+    for rd in readsv:
+        cells=' & '.join(f"{S[p,e,rd]['exact']}/{S[p,e,rd]['trials']}" for p in parities)
+        site_grid.append(f"{100*e:g}\\% & {rd} & {cells}"+r' \\')
+site_partial=[]
+for e in errs:
+    for rd in readsv:
+        r=S[250,e,rd]
+        site_partial.append(f"{100*e:g}\\% & {rd} & {r['exact']}/{r['trials']} & {100*float(r['mean_guaranteed_exact']):.1f}\\% & {100*float(r['mean_actually_correct']):.1f}\\% & {float(r['median_decode_ms']):.0f}"+r' \\')
+site_plot='\n'.join(r'\addplot+[mark=*,thick] coordinates {'+' '.join(f"({rd},{S[250,e,rd]['exact']})" for rd in readsv)+'};'
+                    +r'\addlegendentry{'+f'{100*e:g}'+r'\% per base}' for e in errs)
+nt_per_byte={p:float(S[p,errs[0],readsv[0]]['nt_per_byte']) for p in parities}
+real=S[250,0.01,3]
+
 tex=r'''\documentclass[11pt,a4paper]{article}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern,microtype}
@@ -54,7 +139,7 @@ tex=r'''\documentclass[11pt,a4paper]{article}
 \hypersetup{colorlinks=true,linkcolor=teal,urlcolor=teal,pdftitle={DNA Data Storage Encoder: Project Report},pdfauthor={}}
 \pagestyle{fancy}\fancyhf{}
 \fancyhead[L]{\small\textcolor{navy}{DNA DATA STORAGE ENCODER}}
-\fancyhead[R]{\small\textcolor{muted}{Project report | 08 Oct 2026}}
+\fancyhead[R]{\small\textcolor{muted}{Project report | 09 Oct 2026}}
 \fancyfoot[L]{\footnotesize Implementation v0.1.0 / format v3}
 \fancyfoot[R]{\footnotesize\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
@@ -66,15 +151,15 @@ tex=r'''\documentclass[11pt,a4paper]{article}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \begin{document}
 \thispagestyle{empty}
-{\color{teal}\large ENGINEERING PROJECT REPORT}\par\vspace{18mm}
+{\color{teal}\large ENGINEERING PROJECT REPORT}\par\vspace{8mm}
 {\color{navy}\Huge\bfseries DNA Data Storage\\[4pt]Encoder}\par\vspace{5mm}
-{\Large Implementation, worked examples\\and empirical evaluation}\par\vspace{7mm}
-{\large 8 October 2026}\par
-\vspace{12mm}
+{\Large Implementation, evaluation,\\testing and web demo}\par\vspace{5mm}
+{\large 9 October 2026}\par
+\vspace{6mm}
 \begin{tabularx}{\linewidth}{YYY}
 \toprule
-\textcolor{teal}{\Large\bfseries 200 nt} & \textcolor{teal}{\Large\bfseries 6 arms} & \textcolor{teal}{\Large\bfseries 480 trials}\\
-Fixed oligo length & Matched-budget validation & Recorded decoder evaluations\\
+\textcolor{teal}{\Large\bfseries 480 trials} & \textcolor{teal}{\Large\bfseries @@N_TESTS@@ tests} & \textcolor{teal}{\Large\bfseries @@SITE_TRIALS@@ trials}\\
+Matched-budget codec validation & Automated checks, @@COVERAGE@@\% line coverage & Error-tolerant web codec benchmark\\
 \bottomrule
 \end{tabularx}\par
 \vspace{6mm}
@@ -93,15 +178,23 @@ The earlier 480-trial validation and completed 100 KB clustering experiment prov
 broader implementation evidence. They do not establish a general advantage for any
 codec, and the full publication study remains unfinished.
 
+An adversarial testing campaign then ran @@N_TESTS@@ Python tests and @@NODE_TOTAL@@ browser-codec
+tests. Across corrupted reads, mixed pools, truncated archives and misuse, no decoder ever
+reported success with wrong bytes, but @@N_BUGS@@ reproducible defects were found and are
+documented as failing tests. A public web demo
+(\url{https://dadabsdk.github.io/dna-encoder/}) adds an error-tolerant browser format. In
+@@SITE_TRIALS@@ seeded trials it recovered @@REAL_EXACT@@ of @@REAL_TRIALS@@ files exactly at 1\% per-base
+error with three reads per strand and 25\% parity, and returned partial files with flagged
+uncertain bytes when damage exceeded the parity budget.
+
 \note{\textbf{Evidence boundary.} Fresh examples are single realizations, not estimates of
 recovery probability. Historical experiments are identified separately. All successful
 fresh examples require both the decoder's integrity checks and exact input/output byte
 and SHA-256 equality. No physical DNA synthesis experiment was performed here.}
 \vfill
-\textbf{Report contents}\par
-Architecture and codecs (p.\,2); physical format and metrics (p.\,3); fresh examples
-(p.\,4--5); matched-budget validation (p.\,6); clustering at scale (p.\,7);
-reliability, limitations and next steps (p.\,8); reproduction and evidence manifest (p.\,9).
+{\small\textbf{Contents:} architecture; physical format and metrics; worked examples;
+matched-budget validation; clustering at scale; earlier research phases; testing campaign;
+web demo; limitations and next steps; reproduction and evidence.}
 
 \pageheading{Project objective and architecture}{Question: do sequence constraints justify the nucleotides they consume?}
 The central design question is whether spending nucleotides on sequence constraints
@@ -359,6 +452,170 @@ seen in those data. Consequently, simulated recovery is not a wet-lab performanc
 guarantee. This report summarizes the recorded project calibration; it does not
 independently revalidate the external dataset or literature.
 
+\pageheading{Earlier research phases: constraints, structure and channel}{Phase 2--3 measurements. The density sweep predates the format-v3 inner CRC-32 and is not directly comparable with v3 results.}
+\subsection*{What sequence constraints cost (Phase 2 sweep, format v2)}
+Each arm encoded the same input into 200-nt oligos. Code density counts payload bits per
+payload nucleotide; effective density counts file bits per synthesized nucleotide,
+including primers, index, header oligos and parity. A violating oligo breaks at least one
+hard synthesis constraint (homopolymer, GC content or primer match).
+\begin{center}\small
+\begin{tabular}{lrrrr}
+\toprule
+Arm & Code density (b/nt) & Effective density (b/nt) & Max run & Violating oligos\\
+\midrule
+@@P2_ROWS@@
+\bottomrule
+\end{tabular}
+\end{center}
+Unconstrained quaternary mappings are densest but most of their oligos break hard
+constraints; whitening alone does not fix this. Every constrained arm met the hard
+constraints at a measurable density cost. Whether that cost buys more recovery than the
+same nucleotides spent on parity is the open question of the study.
+
+\subsection*{A hidden structure cost of homopolymer limits}
+Median minimum free energy (kcal/mol, 95\% CI) of 2{,}000 random 160-nt bodies; more
+negative means more stable self-folding.
+\begin{center}\small
+\begin{tabular}{lrrr}
+\toprule
+Sequence model & MFE, 37\,\textdegree C & MFE, 60\,\textdegree C & Paired fraction\\
+\midrule
+@@MFE_ROWS@@
+\bottomrule
+\end{tabular}
+\end{center}
+Run-length-1 coding folds markedly more stably. Banning one successor raises the
+probability of reverse-complementary k-mer pairs, and a control that bans a different
+successor reproduces most of the gap. Constrained alphabets therefore start from a
+structural deficit that their steering must repay.
+
+\subsection*{Choosing a structure metric}
+Spearman correlation with equilibrium primer-site accessibility at 60\,\textdegree C on a
+held-out half (n = 505):
+\begin{center}\small
+\begin{tabular}{lr}
+\toprule
+Proxy & $\rho$\\
+\midrule
+@@PROXY_ROWS@@
+\bottomrule
+\end{tabular}
+\end{center}
+Global MFE is a poor surrogate for primer accessibility, so accessibility became the
+primary structure metric; the cheap k-mer proxy is only a tie-breaker.
+
+\subsection*{Read-channel calibration against real nanopore data}
+Real reads: public R10.4.1 data (Chen et al.\ 2025, Zenodo 10.5281/zenodo.16883332),
+Dorado basecalls on identical reference intervals.
+\begin{center}\small
+\begin{tabular}{lrrrr}
+\toprule
+Measure & Real hac & Real sup & Squigulator $\to$ Dorado & Badread (matched)\\
+\midrule
+@@CAL_ROWS@@
+\bottomrule
+\end{tabular}
+\end{center}
+Identity-matched Badread reproduces the real error level and is the main read-level
+channel; squigulator is retained only as a labelled, miscalibrated stress channel.
+Badread omits the systematic read-to-read errors seen in real data.
+
+\pageheading{Testing campaign and known defects}{Full suites rerun for this report; evidence in results/testing\_20261009/.}
+\begin{center}\small
+\begin{tabular}{lr}
+\toprule
+Python tests (pytest) & @@N_TESTS@@\\
+\quad passed / skipped / failed & @@N_PASS@@ / @@N_SKIP@@ / @@N_FAIL@@\\
+\quad known defects (strict expected failures) & @@N_XFAIL@@\\
+Browser-codec tests (Node.js) passed / failed & @@NODE_PASS@@ / @@NODE_FAIL@@\\
+Line coverage of \texttt{dnastore/} & @@COVERAGE@@\%\\
+\bottomrule
+\end{tabular}
+\end{center}
+\textbf{What was attacked.} Heavy insertion/deletion/substitution noise, truncated and
+chimeric reads, junk-only input, pools mixing two files with the same primers, outer
+Reed--Solomon erasures at and beyond capacity (checked against the \texttt{reedsolo}
+reference), undetected corrupted oligos, 556 corrupted or truncated stream archives,
+33 malformed FASTA/FASTQ cases, determinism across hash seeds and worker counts, and the
+local web server's host, token and path-traversal checks. @@N_GUARDS@@ guard tests now
+pin these properties. \textbf{No test produced a successful decode with wrong bytes.}
+
+\textbf{Defects found.} Each is a strict expected-failure test in
+\texttt{tests/test\_adversarial.py}: the suite stays green, and a fix makes the test pass,
+which then fails the run until the marker is removed. None is fixed yet.
+\begin{center}\small
+\begin{tabularx}{\linewidth}{lY}
+\toprule
+ID & Defect\\
+\midrule
+@@BUG_ROWS@@
+\bottomrule
+\end{tabularx}
+\end{center}
+\note{\textbf{Impact.} The fountain-codec defect affects benchmark interpretation for small
+files: a pool that cannot be decoded from perfect reads makes later channel trials
+meaningless. The benchmark records \texttt{noiseless\_ok} per pool, which must be checked.
+The \texttt{reedsolo} defect breaks the default CLI decoder on a plain install.}
+
+\pageheading{Web demo and the error-tolerant browser codec}{\url{https://dadabsdk.github.io/dna-encoder/}; benchmark: scripts/site\_resilience.mjs.}
+The static site runs entirely in the browser and is deployed by GitHub Actions with
+commit-versioned asset URLs. Its default format (\texttt{DNASTORE-RS-1}) is separate from
+the research codec: 32-byte payloads become 160-nt strands
+[index $\|$ payload $\|$ CRC-32] with keystream whitening, plus Reed--Solomon parity
+strands across each block of up to 255 strands and eight copies of the metadata. The
+decoder (i) accepts reads whose CRC verifies, (ii) repairs one substitution, insertion or
+deletion per read by CRC-guided search, (iii) merges several reads of one strand by
+banded-alignment consensus, (iv) rebuilds missing strands from parity, and (v) beyond the
+parity budget returns the file with unrecoverable bytes reported as uncertain. Bytes not
+reported uncertain are exact; the benchmark asserts this in every trial.
+
+\textbf{Benchmark.} @@SITE_TRIALS@@ trials: random 20{,}000-byte payloads, @@SITE_SEEDS@@ seeds per
+cell; 5\% strand dropout; per-base error split 50\% substitution, 25\% insertion, 25\%
+deletion, independent per read. Synthesis cost: @@NTB_100@@ / @@NTB_250@@ / @@NTB_500@@ nt per byte at
+10 / 25 / 50\% parity (raw 2-bit mapping: 4 nt per byte).
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.62\linewidth,height=5.2cm,xlabel={Reads per strand},ylabel={Exact recoveries (of @@SITE_SEEDS@@)},
+  xtick={1,2,3},ymin=-0.5,ymax=10.5,legend pos=outer north east,legend style={font=\footnotesize},title={25\% parity},
+  title style={font=\small},grid=major,grid style={gray!25}]
+@@SITE_PLOT@@
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\par\noindent\begin{minipage}{\linewidth}
+\textbf{Exact recoveries by parity level.}
+\begin{center}\small
+\begin{tabular}{rrrrr}
+\toprule
+Error/base & Reads & 10\% parity & 25\% parity & 50\% parity\\
+\midrule
+@@SITE_GRID@@
+\bottomrule
+\end{tabular}
+\end{center}
+\end{minipage}
+\par\noindent\begin{minipage}{\linewidth}
+\textbf{Partial recovery at 25\% parity.}
+\begin{center}\small
+\begin{tabular}{rrrrrr}
+\toprule
+Err. & Reads & Exact & Guaranteed & Correct & ms\\
+\midrule
+@@SITE_PARTIAL@@
+\bottomrule
+\end{tabular}
+\end{center}
+\end{minipage}
+{\small \emph{Guaranteed} is the mean share of bytes not flagged
+uncertain; \emph{Correct} also counts flagged bytes whose best guess was right; ms is the
+median decode time (Node.js @@NODE_VERSION@@).}
+
+Multiple reads per strand matter more than parity: a single read at 1--2\% error per base
+usually carries two or more errors, which single-edit repair cannot fix. The channel is
+synthetic with independent errors; real systematic errors and PCR bias would lower these
+numbers. This browser format is a teaching and robustness demonstration, not a replacement
+for the constrained research codec, and is not yet readable by the CLI.
+
 \pageheading{Engineering quality and remaining limitations}{The software workflow is operational; the broader research study is not complete.}
 \subsection*{Completed reliability work}
 \begin{itemize}
@@ -429,6 +686,14 @@ images or bibliography files are required. A standard LaTeX installation with Ti
 PGFPlots, Latin Modern, microtype and the listed table/layout packages is sufficient.
 The full study can be substantially more expensive than the demonstrations.
 
+\subsection*{Rerun the tests and the web-codec benchmark}
+\begin{lstlisting}
+.venv/bin/pytest -q --cov=dnastore --cov-report=json:OUT/coverage.json \
+  --junitxml=OUT/pytest_junit.xml
+node --test --test-reporter=tap site/tests/resilient.test.mjs
+node scripts/site_resilience.mjs results/site_resilience_rerun
+\end{lstlisting}
+
 \subsection*{Primary project evidence}
 {\small\begin{description}
 \item[P1] \path{docs/PROJECT_STATUS.md} and \path{docs/DESIGN.md}: design decisions,
@@ -443,6 +708,12 @@ The full study can be substantially more expensive than the demonstrations.
   channel measurements and transfer limitations.
 \item[P6] \path{docs/BENCHMARK.md}, \path{dnastore/metrics.py} and
   \path{dnastore/benchmark.py}: budget, metric and statistical definitions.
+\item[P7] \path{results/phase2/sweep_v2/summary.csv}, \path{results/phase2/composition/mfe_summary.csv}
+  and \path{docs/notes/structure.md}: historical constraint, structure and proxy results.
+\item[P8] \path{results/testing_20261009/}: JUnit XML, coverage JSON and Node TAP output of
+  the test rerun; defects parsed from \path{tests/test_adversarial.py}.
+\item[P9] \path{results/site_resilience_20261009/}: per-trial \path{results.csv},
+  \path{summary.csv} and \path{provenance.json} (codec SHA-256 recorded).
 \end{description}}
 \note{\textbf{Traceability.} The report builder reads the saved JSON/CSV evidence rather
 than rerunning or fabricating measurements. \texttt{reports/report\_evidence.json}
@@ -452,11 +723,22 @@ changed evidence requires reviewing the interpretation as well as the numbers.}
 '''
 for key,value in {'EXAMPLE_ROWS':'\n'.join(rows),'VALIDATION_ROWS':'\n'.join(vt),'SCALE_ROWS':'\n'.join(st),
                   'DNA':'\n'.join(dna[i:i+50] for i in range(0,len(dna),50)),
-                  'HASHES':hashes,'SUB_COORDS':errors[0],'INS_COORDS':errors[1],'DEL_COORDS':errors[2]}.items():
+                  'HASHES':hashes,'SUB_COORDS':errors[0],'INS_COORDS':errors[1],'DEL_COORDS':errors[2],
+                  'P2_ROWS':'\n'.join(p2),'MFE_ROWS':'\n'.join(mfe_rows),'PROXY_ROWS':'\n'.join(proxy_rows),'CAL_ROWS':'\n'.join(cal_rows),
+                  'N_TESTS':str(len(cases)),'N_PASS':str(n_pass),'N_SKIP':str(n_skip),'N_FAIL':str(n_fail),'N_XFAIL':str(n_xfail),
+                  'NODE_PASS':str(node_pass),'NODE_FAIL':str(node_fail),'NODE_TOTAL':str(node_pass+node_fail),'COVERAGE':f'{coverage:.0f}',
+                  'N_BUGS':str(len(bugs)),'N_GUARDS':str(guards),'BUG_ROWS':'\n'.join(bug_rows),
+                  'SITE_TRIALS':f'{site_trials:,}','SITE_SEEDS':site[0]['trials'],'SITE_PLOT':site_plot,'SITE_GRID':'\n'.join(site_grid),
+                  'SITE_PARTIAL':'\n'.join(site_partial),'NODE_VERSION':esc(site_prov['node']),
+                  'NTB_100':f"{nt_per_byte[100]:.2f}",'NTB_250':f"{nt_per_byte[250]:.2f}",'NTB_500':f"{nt_per_byte[500]:.2f}",
+                  'REAL_EXACT':real['exact'],'REAL_TRIALS':real['trials']}.items():
     tex=tex.replace('@@'+key+'@@',value)
 assert '@@' not in tex
 out=ROOT/'reports/dna_storage_project_report.tex';out.parent.mkdir(exist_ok=True);out.write_text(tex)
-files=[EX/'examples.json',EX/'results.csv',VALID/'summary.csv',VALID/'provenance.json',ROOT/'results/phase3/cluster_scale_100KB/cluster_scale.csv',ROOT/'docs/PROJECT_STATUS.md',ROOT/'docs/DESIGN.md',out]
+files=[EX/'examples.json',EX/'results.csv',VALID/'summary.csv',VALID/'provenance.json',ROOT/'results/phase3/cluster_scale_100KB/cluster_scale.csv',
+       SWEEP,MFE,STRUCT,CAL,TEST/'pytest_junit.xml',TEST/'coverage.json',TEST/'node_tests.tap',ADV,
+       SITE/'results.csv',SITE/'summary.csv',SITE/'provenance.json',ROOT/'site/resilient.js',
+       ROOT/'docs/PROJECT_STATUS.md',ROOT/'docs/DESIGN.md',out]
 manifest={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
 (ROOT/'reports/report_evidence.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(out)

@@ -15,7 +15,7 @@
 \hypersetup{colorlinks=true,linkcolor=teal,urlcolor=teal,pdftitle={DNA Data Storage Encoder: Project Report},pdfauthor={}}
 \pagestyle{fancy}\fancyhf{}
 \fancyhead[L]{\small\textcolor{navy}{DNA DATA STORAGE ENCODER}}
-\fancyhead[R]{\small\textcolor{muted}{Project report | 08 Oct 2026}}
+\fancyhead[R]{\small\textcolor{muted}{Project report | 09 Oct 2026}}
 \fancyfoot[L]{\footnotesize Implementation v0.1.0 / format v3}
 \fancyfoot[R]{\footnotesize\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
@@ -27,15 +27,15 @@
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \begin{document}
 \thispagestyle{empty}
-{\color{teal}\large ENGINEERING PROJECT REPORT}\par\vspace{18mm}
+{\color{teal}\large ENGINEERING PROJECT REPORT}\par\vspace{8mm}
 {\color{navy}\Huge\bfseries DNA Data Storage\\[4pt]Encoder}\par\vspace{5mm}
-{\Large Implementation, worked examples\\and empirical evaluation}\par\vspace{7mm}
-{\large 8 October 2026}\par
-\vspace{12mm}
+{\Large Implementation, evaluation,\\testing and web demo}\par\vspace{5mm}
+{\large 9 October 2026}\par
+\vspace{6mm}
 \begin{tabularx}{\linewidth}{YYY}
 \toprule
-\textcolor{teal}{\Large\bfseries 200 nt} & \textcolor{teal}{\Large\bfseries 6 arms} & \textcolor{teal}{\Large\bfseries 480 trials}\\
-Fixed oligo length & Matched-budget validation & Recorded decoder evaluations\\
+\textcolor{teal}{\Large\bfseries 480 trials} & \textcolor{teal}{\Large\bfseries 303 tests} & \textcolor{teal}{\Large\bfseries 270 trials}\\
+Matched-budget codec validation & Automated checks, 93\% line coverage & Error-tolerant web codec benchmark\\
 \bottomrule
 \end{tabularx}\par
 \vspace{6mm}
@@ -54,15 +54,23 @@ The earlier 480-trial validation and completed 100 KB clustering experiment prov
 broader implementation evidence. They do not establish a general advantage for any
 codec, and the full publication study remains unfinished.
 
+An adversarial testing campaign then ran 303 Python tests and 10 browser-codec
+tests. Across corrupted reads, mixed pools, truncated archives and misuse, no decoder ever
+reported success with wrong bytes, but 10 reproducible defects were found and are
+documented as failing tests. A public web demo
+(\url{https://dadabsdk.github.io/dna-encoder/}) adds an error-tolerant browser format. In
+270 seeded trials it recovered 10 of 10 files exactly at 1\% per-base
+error with three reads per strand and 25\% parity, and returned partial files with flagged
+uncertain bytes when damage exceeded the parity budget.
+
 \note{\textbf{Evidence boundary.} Fresh examples are single realizations, not estimates of
 recovery probability. Historical experiments are identified separately. All successful
 fresh examples require both the decoder's integrity checks and exact input/output byte
 and SHA-256 equality. No physical DNA synthesis experiment was performed here.}
 \vfill
-\textbf{Report contents}\par
-Architecture and codecs (p.\,2); physical format and metrics (p.\,3); fresh examples
-(p.\,4--5); matched-budget validation (p.\,6); clustering at scale (p.\,7);
-reliability, limitations and next steps (p.\,8); reproduction and evidence manifest (p.\,9).
+{\small\textbf{Contents:} architecture; physical format and metrics; worked examples;
+matched-budget validation; clustering at scale; earlier research phases; testing campaign;
+web demo; limitations and next steps; reproduction and evidence.}
 
 \pageheading{Project objective and architecture}{Question: do sequence constraints justify the nucleotides they consume?}
 The central design question is whether spending nucleotides on sequence constraints
@@ -342,6 +350,207 @@ seen in those data. Consequently, simulated recovery is not a wet-lab performanc
 guarantee. This report summarizes the recorded project calibration; it does not
 independently revalidate the external dataset or literature.
 
+\pageheading{Earlier research phases: constraints, structure and channel}{Phase 2--3 measurements. The density sweep predates the format-v3 inner CRC-32 and is not directly comparable with v3 results.}
+\subsection*{What sequence constraints cost (Phase 2 sweep, format v2)}
+Each arm encoded the same input into 200-nt oligos. Code density counts payload bits per
+payload nucleotide; effective density counts file bits per synthesized nucleotide,
+including primers, index, header oligos and parity. A violating oligo breaks at least one
+hard synthesis constraint (homopolymer, GC content or primer match).
+\begin{center}\small
+\begin{tabular}{lrrrr}
+\toprule
+Arm & Code density (b/nt) & Effective density (b/nt) & Max run & Violating oligos\\
+\midrule
+Quaternary, raw & 1.882 & 1.074 & 132 & 87.8\% \\
+Quaternary, whitened & 1.882 & 1.074 & 8 & 86.3\% \\
+Goldman rotating ternary & 1.463 & 0.851 & 3 & 3.4\% \\
+Steering A, P=8 & 1.668 & 0.930 & 3 & 0.0\% \\
+Steering C, P=8 & 1.619 & 0.884 & 3 & 0.0\% \\
+Steering B, P=6 & 1.246 & 0.714 & 3 & 0.0\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+Unconstrained quaternary mappings are densest but most of their oligos break hard
+constraints; whitening alone does not fix this. Every constrained arm met the hard
+constraints at a measurable density cost. Whether that cost buys more recovery than the
+same nucleotides spent on parity is the open question of the study.
+
+\subsection*{A hidden structure cost of homopolymer limits}
+Median minimum free energy (kcal/mol, 95\% CI) of 2{,}000 random 160-nt bodies; more
+negative means more stable self-folding.
+\begin{center}\small
+\begin{tabular}{lrrr}
+\toprule
+Sequence model & MFE, 37\,\textdegree C & MFE, 60\,\textdegree C & Paired fraction\\
+\midrule
+Whitened quaternary (i.i.d.) & -17.2 [-17.4, -17.0] & -8.8 [-9.0, -8.6] & 0.52 \\
+Rotating ternary (run length 1) & -27.1 [-27.3, -26.9] & -14.7 [-14.9, -14.6] & 0.63 \\
+Control: different banned successor & -25.0 [-25.2, -24.8] & -13.5 [-13.6, -13.3] & 0.59 \\
+\bottomrule
+\end{tabular}
+\end{center}
+Run-length-1 coding folds markedly more stably. Banning one successor raises the
+probability of reverse-complementary k-mer pairs, and a control that bans a different
+successor reproduces most of the gap. Constrained alphabets therefore start from a
+structural deficit that their steering must repay.
+
+\subsection*{Choosing a structure metric}
+Spearman correlation with equilibrium primer-site accessibility at 60\,\textdegree C on a
+held-out half (n = 505):
+\begin{center}\small
+\begin{tabular}{lr}
+\toprule
+Proxy & $\rho$\\
+\midrule
+Incremental k-mer proxy (tier 1) & $-0.373$ \\
+Local partition function, window 80 nt (tier 2) & $+0.778$ \\
+Global MFE at 60 \textdegree C & $+0.207$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Global MFE is a poor surrogate for primer accessibility, so accessibility became the
+primary structure metric; the cheap k-mer proxy is only a tie-breaker.
+
+\subsection*{Read-channel calibration against real nanopore data}
+Real reads: public R10.4.1 data (Chen et al.\ 2025, Zenodo 10.5281/zenodo.16883332),
+Dorado basecalls on identical reference intervals.
+\begin{center}\small
+\begin{tabular}{lrrrr}
+\toprule
+Measure & Real hac & Real sup & Squigulator $\to$ Dorado & Badread (matched)\\
+\midrule
+Per-base error & 1.51\% & 1.01\% & 9.12\% & 1.55\% \\
+Sub.\,/\,del.\,/\,ins. & 0.67 / 0.57 / 0.27\% & -- & 4.7 / 3.0 / 1.4\% & 0.67 / 0.58 / 0.30\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+Identity-matched Badread reproduces the real error level and is the main read-level
+channel; squigulator is retained only as a labelled, miscalibrated stress channel.
+Badread omits the systematic read-to-read errors seen in real data.
+
+\pageheading{Testing campaign and known defects}{Full suites rerun for this report; evidence in results/testing\_20261009/.}
+\begin{center}\small
+\begin{tabular}{lr}
+\toprule
+Python tests (pytest) & 303\\
+\quad passed / skipped / failed & 292 / 1 / 0\\
+\quad known defects (strict expected failures) & 10\\
+Browser-codec tests (Node.js) passed / failed & 10 / 0\\
+Line coverage of \texttt{dnastore/} & 93\%\\
+\bottomrule
+\end{tabular}
+\end{center}
+\textbf{What was attacked.} Heavy insertion/deletion/substitution noise, truncated and
+chimeric reads, junk-only input, pools mixing two files with the same primers, outer
+Reed--Solomon erasures at and beyond capacity (checked against the \texttt{reedsolo}
+reference), undetected corrupted oligos, 556 corrupted or truncated stream archives,
+33 malformed FASTA/FASTQ cases, determinism across hash seeds and worker counts, and the
+local web server's host, token and path-traversal checks. 7 guard tests now
+pin these properties. \textbf{No test produced a successful decode with wrong bytes.}
+
+\textbf{Defects found.} Each is a strict expected-failure test in
+\texttt{tests/test\_adversarial.py}: the suite stays green, and a fix makes the test pass,
+which then fails the run until the marker is removed. None is fixed yet.
+\begin{center}\small
+\begin{tabularx}{\linewidth}{lY}
+\toprule
+ID & Defect\\
+\midrule
+B1 & a config file without \texttt{primers:} resolves the default primers.yaml next to the config instead of the bundled primers \\
+B2 & non-integer oligo\_len escapes the CLI as a TypeError traceback \\
+B3 & reedsolo is imported by the default \texttt{repair} decoder (ecc.\_ee\_column) but is only a [test] extra \\
+B4 & \_ee\_column trusts reedsolo's global GF tables when gf\_exp[1] == 2, so another primitive polynomial silently breaks it \\
+B5 & fountain encoder never checks decodability; with default overhead most small pools (k\textasciitilde{}7) fail even from perfect reads \\
+B6 & gzip is detected by lowercase '.gz' suffix only \\
+B7 & truncated gzip raises EOFError, which the CLI does not catch \\
+B8 & web accepts unbounded mean\_coverage; one request can exhaust host memory in the read simulator \\
+B9 & web allows oligo\_len 100, where the header of 5 of 6 codecs needs more than 15 fragments \\
+B10 & cluster grouping takes the first-seen header fragment, so a minority contaminant pool can block recovery of the majority file \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\note{\textbf{Impact.} The fountain-codec defect affects benchmark interpretation for small
+files: a pool that cannot be decoded from perfect reads makes later channel trials
+meaningless. The benchmark records \texttt{noiseless\_ok} per pool, which must be checked.
+The \texttt{reedsolo} defect breaks the default CLI decoder on a plain install.}
+
+\pageheading{Web demo and the error-tolerant browser codec}{\url{https://dadabsdk.github.io/dna-encoder/}; benchmark: scripts/site\_resilience.mjs.}
+The static site runs entirely in the browser and is deployed by GitHub Actions with
+commit-versioned asset URLs. Its default format (\texttt{DNASTORE-RS-1}) is separate from
+the research codec: 32-byte payloads become 160-nt strands
+[index $\|$ payload $\|$ CRC-32] with keystream whitening, plus Reed--Solomon parity
+strands across each block of up to 255 strands and eight copies of the metadata. The
+decoder (i) accepts reads whose CRC verifies, (ii) repairs one substitution, insertion or
+deletion per read by CRC-guided search, (iii) merges several reads of one strand by
+banded-alignment consensus, (iv) rebuilds missing strands from parity, and (v) beyond the
+parity budget returns the file with unrecoverable bytes reported as uncertain. Bytes not
+reported uncertain are exact; the benchmark asserts this in every trial.
+
+\textbf{Benchmark.} 270 trials: random 20{,}000-byte payloads, 10 seeds per
+cell; 5\% strand dropout; per-base error split 50\% substitution, 25\% insertion, 25\%
+deletion, independent per read. Synthesis cost: 5.82 / 6.58 / 7.82 nt per byte at
+10 / 25 / 50\% parity (raw 2-bit mapping: 4 nt per byte).
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.62\linewidth,height=5.2cm,xlabel={Reads per strand},ylabel={Exact recoveries (of 10)},
+  xtick={1,2,3},ymin=-0.5,ymax=10.5,legend pos=outer north east,legend style={font=\footnotesize},title={25\% parity},
+  title style={font=\small},grid=major,grid style={gray!25}]
+\addplot+[mark=*,thick] coordinates {(1,10) (2,10) (3,10)};\addlegendentry{0.3\% per base}
+\addplot+[mark=*,thick] coordinates {(1,0) (2,0) (3,10)};\addlegendentry{1\% per base}
+\addplot+[mark=*,thick] coordinates {(1,0) (2,0) (3,0)};\addlegendentry{2\% per base}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\par\noindent\begin{minipage}{\linewidth}
+\textbf{Exact recoveries by parity level.}
+\begin{center}\small
+\begin{tabular}{rrrrr}
+\toprule
+Error/base & Reads & 10\% parity & 25\% parity & 50\% parity\\
+\midrule
+0.3\% & 1 & 0/10 & 10/10 & 10/10 \\
+0.3\% & 2 & 10/10 & 10/10 & 10/10 \\
+0.3\% & 3 & 10/10 & 10/10 & 10/10 \\
+1\% & 1 & 0/10 & 0/10 & 0/10 \\
+1\% & 2 & 0/10 & 0/10 & 10/10 \\
+1\% & 3 & 1/10 & 10/10 & 10/10 \\
+2\% & 1 & 0/10 & 0/10 & 0/10 \\
+2\% & 2 & 0/10 & 0/10 & 0/10 \\
+2\% & 3 & 0/10 & 0/10 & 0/10 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{minipage}
+\par\noindent\begin{minipage}{\linewidth}
+\textbf{Partial recovery at 25\% parity.}
+\begin{center}\small
+\begin{tabular}{rrrrrr}
+\toprule
+Err. & Reads & Exact & Guaranteed & Correct & ms\\
+\midrule
+0.3\% & 1 & 10/10 & 100.0\% & 100.0\% & 27 \\
+0.3\% & 2 & 10/10 & 100.0\% & 100.0\% & 24 \\
+0.3\% & 3 & 10/10 & 100.0\% & 100.0\% & 33 \\
+1\% & 1 & 0/10 & 49.9\% & 69.9\% & 66 \\
+1\% & 2 & 0/10 & 78.8\% & 87.8\% & 171 \\
+1\% & 3 & 10/10 & 100.0\% & 100.0\% & 205 \\
+2\% & 1 & 0/10 & 15.7\% & 43.4\% & 98 \\
+2\% & 2 & 0/10 & 33.5\% & 61.9\% & 352 \\
+2\% & 3 & 0/10 & 58.2\% & 76.1\% & 553 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{minipage}
+{\small \emph{Guaranteed} is the mean share of bytes not flagged
+uncertain; \emph{Correct} also counts flagged bytes whose best guess was right; ms is the
+median decode time (Node.js v22.22.0).}
+
+Multiple reads per strand matter more than parity: a single read at 1--2\% error per base
+usually carries two or more errors, which single-edit repair cannot fix. The channel is
+synthetic with independent errors; real systematic errors and PCR bias would lower these
+numbers. This browser format is a teaching and robustness demonstration, not a replacement
+for the constrained research codec, and is not yet readable by the CLI.
+
 \pageheading{Engineering quality and remaining limitations}{The software workflow is operational; the broader research study is not complete.}
 \subsection*{Completed reliability work}
 \begin{itemize}
@@ -412,6 +621,14 @@ images or bibliography files are required. A standard LaTeX installation with Ti
 PGFPlots, Latin Modern, microtype and the listed table/layout packages is sufficient.
 The full study can be substantially more expensive than the demonstrations.
 
+\subsection*{Rerun the tests and the web-codec benchmark}
+\begin{lstlisting}
+.venv/bin/pytest -q --cov=dnastore --cov-report=json:OUT/coverage.json \
+  --junitxml=OUT/pytest_junit.xml
+node --test --test-reporter=tap site/tests/resilient.test.mjs
+node scripts/site_resilience.mjs results/site_resilience_rerun
+\end{lstlisting}
+
 \subsection*{Primary project evidence}
 {\small\begin{description}
 \item[P1] \path{docs/PROJECT_STATUS.md} and \path{docs/DESIGN.md}: design decisions,
@@ -426,6 +643,12 @@ The full study can be substantially more expensive than the demonstrations.
   channel measurements and transfer limitations.
 \item[P6] \path{docs/BENCHMARK.md}, \path{dnastore/metrics.py} and
   \path{dnastore/benchmark.py}: budget, metric and statistical definitions.
+\item[P7] \path{results/phase2/sweep_v2/summary.csv}, \path{results/phase2/composition/mfe_summary.csv}
+  and \path{docs/notes/structure.md}: historical constraint, structure and proxy results.
+\item[P8] \path{results/testing_20261009/}: JUnit XML, coverage JSON and Node TAP output of
+  the test rerun; defects parsed from \path{tests/test_adversarial.py}.
+\item[P9] \path{results/site_resilience_20261009/}: per-trial \path{results.csv},
+  \path{summary.csv} and \path{provenance.json} (codec SHA-256 recorded).
 \end{description}}
 \note{\textbf{Traceability.} The report builder reads the saved JSON/CSV evidence rather
 than rerunning or fabricating measurements. \texttt{reports/report\_evidence.json}

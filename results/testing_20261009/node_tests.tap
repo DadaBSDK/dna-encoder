@@ -1,0 +1,72 @@
+TAP version 13
+# 1 MB x3 reads: 15508 reads repaired, decode 4047 ms
+# Subtest: noiseless round trip across sizes and parity levels
+ok 1 - noiseless round trip across sizes and parity levels
+  ---
+  duration_ms: 1301.226336
+  type: 'test'
+  ...
+# Subtest: no long homopolymers even for all-zero files
+ok 2 - no long homopolymers even for all-zero files
+  ---
+  duration_ms: 9.705833
+  type: 'test'
+  ...
+# Subtest: any p lost strands per block are rebuilt exactly
+ok 3 - any p lost strands per block are rebuilt exactly
+  ---
+  duration_ms: 115.873501
+  type: 'test'
+  ...
+# Subtest: one substitution, insertion or deletion in EVERY strand is repaired with zero parity
+ok 4 - one substitution, insertion or deletion in EVERY strand is repaired with zero parity
+  ---
+  duration_ms: 31.922732
+  type: 'test'
+  ...
+# Subtest: shuffled, lowercase, duplicated, junk and N-containing input still decodes
+ok 5 - shuffled, lowercase, duplicated, junk and N-containing input still decodes
+  ---
+  duration_ms: 10.918334
+  type: 'test'
+  ...
+# Subtest: compromise output: bytes not marked uncertain are always exact
+ok 6 - compromise output: bytes not marked uncertain are always exact
+  ---
+  duration_ms: 901.067818
+  type: 'test'
+  ...
+# Subtest: realistic channel (1% errors/base, 3 reads, 5% dropout, 25% parity) recovers exactly
+ok 7 - realistic channel (1% errors/base, 3 reads, 5% dropout, 25% parity) recovers exactly
+  ---
+  duration_ms: 1510.490883
+  type: 'test'
+  ...
+# Subtest: single read at 2% errors/base degrades to partial output instead of failing
+ok 8 - single read at 2% errors/base degrades to partial output instead of failing
+  ---
+  duration_ms: 136.990149
+  type: 'test'
+  ...
+# Subtest: decoding 1 MB with 1% substitutions and 3 reads finishes quickly
+ok 9 - decoding 1 MB with 1% substitutions and 3 reads finishes quickly
+  ---
+  duration_ms: 6282.733094
+  type: 'test'
+  ...
+# Subtest: rejects text that is not an archive
+ok 10 - rejects text that is not an archive
+  ---
+  duration_ms: 2.08142
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10538.687137
+node exit=0

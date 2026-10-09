@@ -4,7 +4,19 @@
   "results/phase4/validation_optimized_20261008/summary.csv": "a6042d16cb730e3a70ffd43c12d2d5abd967e4ecb96ecf3b45c27fb45bb0f0d0",
   "results/phase4/validation_optimized_20261008/provenance.json": "936cd92f26579284625cd70b9f0441e34372062b14f41d2129eb4267b7b0f512",
   "results/phase3/cluster_scale_100KB/cluster_scale.csv": "fed0284a08e82c6a1880813069c57c5175a64c2e9b866891f39e1dee7442cce3",
-  "docs/PROJECT_STATUS.md": "6a30df44f0bc1fbdaf0e2d4fc5a7d59a82ecca7e9bc65096d5cd47ab84b626c2",
+  "results/phase2/sweep_v2/summary.csv": "83347b0e5eb56cb3fc8459be23d6077eb7043f2cf9215c929d704e5030f5b929",
+  "results/phase2/composition/mfe_summary.csv": "9cdad8ba6b6967e87d98a933807117c01c3a77081ce3a49dc9b5e52bd2eafc5b",
+  "docs/notes/structure.md": "80772a1720aa7392c6d01efc6fecea0b75eb34714cef2ae1b62f254b8ef057a3",
+  "docs/notes/channel_calibration.md": "41b420b583aca87a3fa4738e503edc189e4eb10030359713b58e0768f4851391",
+  "results/testing_20261009/pytest_junit.xml": "3c94c7a954dc43f0ed65491fe731432382f8ad008f5e6cb0bc88cb3c006f7ba6",
+  "results/testing_20261009/coverage.json": "71b4b5cbe1c1a69cd1519d813e39f6cf03d2ce255bfad94695b08642bc8dafdb",
+  "results/testing_20261009/node_tests.tap": "f15762004f732907fc5002f5fa60c5bad1cbbac75703a7b26c59576fa1c7a823",
+  "tests/test_adversarial.py": "dcc09c19a7505d39f778b29ef7a82c632b0c429cab23a356addfd8833d74b830",
+  "results/site_resilience_20261009/results.csv": "80363be2b2df453e35597a4e23102484ca6254195b3bb93f5675d36704f9d4d4",
+  "results/site_resilience_20261009/summary.csv": "b69f5ac601ae4bd87fb0715a7fd8a8457ec2224d9cfb37ac6cb59b1bb50131ae",
+  "results/site_resilience_20261009/provenance.json": "9c45d08d1c9b125cd44a52a998f4bf5db64f6bf6323b7e28cd3712160c594d0c",
+  "site/resilient.js": "88efc0041d2bf103765ad48a472ba5e9d9b5ee9d0b6e3a1ae7f57b924462f066",
+  "docs/PROJECT_STATUS.md": "aeb11ba857c21089de700c63bbe4fa8258c43646313629f2c166eac1b6b06e32",
   "docs/DESIGN.md": "02fef784cebf44bfad9311b60c8f655f93751e5a2bc9db04cc07307d41591a0b",
-  "reports/dna_storage_project_report.tex": "c49d9d0917ab1d374f1236b3e69a1c7deb7a9917bd4a45434dc1fb1ccd93b3e8"
+  "reports/dna_storage_project_report.tex": "9f8c4604c0e16514a3e10eaa4548cb9f8a2c1f49ccc1470724e5f38978f60cb4"
 }
